@@ -252,7 +252,7 @@ input:checked + .slider:before { transform: translateX(18px); }
 
     <div class="toolbar">
       <button class="btn primary" onclick="openModal()"><i data-lucide="plus" style="width:15px;height:15px;display:inline-block;vertical-align:middle"></i> Agregar carta</button>
-      <button class="btn" onclick="openSendToGradeModal()">Enviar a gradar</button>
+      <button class="btn" onclick="openSendToGradeModal()">Enviar a gradear</button>
       <button class="btn" onclick="refreshPrices()" id="refreshBtn"><i data-lucide="refresh-cw" style="width:15px;height:15px;display:inline-block;vertical-align:middle"></i> Actualizar precios</button>
     </div>
 
@@ -421,11 +421,11 @@ input:checked + .slider:before { transform: translateX(18px); }
 <div class="overlay" id="sendGradeOverlay">
   <div class="modal">
     <div class="modal-header">
-      <h2>Enviar a gradar</h2>
+      <h2>Enviar a gradear</h2>
       <button class="modal-close" onclick="closeSendGradeModal()"><i data-lucide="x" style="width:18px;height:18px;display:inline-block;vertical-align:middle"></i></button>
     </div>
 
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem">Selecciona la carta raw que vas a enviar a gradar.</p>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem">Selecciona la carta raw que vas a enviar a gradear.</p>
 
     <div class="convert-list" id="convertList"></div>
 
@@ -456,7 +456,7 @@ input:checked + .slider:before { transform: translateX(18px); }
 
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeSendGradeModal()">Cancelar</button>
-      <button class="btn-save" onclick="confirmSendToGrade()">Enviar a gradar</button>
+      <button class="btn-save" onclick="confirmSendToGrade()">Enviar a gradear</button>
     </div>
   </div>
 </div>
@@ -730,6 +730,7 @@ function render(){
       </td>`;
     tbody.appendChild(tr);
   });
+  setTimeout(reIcons, 50);
 
   $('mTotal').textContent=total;
   $('mInv').textContent=fmt(inv);
@@ -820,6 +821,10 @@ function onSearch(){
   if(q.length<2){$('resultsDrop').style.display='none';return;}
   debounce=setTimeout(()=>fetchCards(q),500);
 }
+function onSetFilter(){
+  const q=$('cardSearch').value.trim();
+  if(q.length>=2) fetchCards(q);
+}
 function triggerSearch(){
   const q=$('cardSearch').value.trim();
   if(q.length<1)return;
@@ -830,16 +835,31 @@ async function fetchCards(q){
   drop.style.display='block';
   drop.innerHTML='<div class="r-status">Buscando...</div>';
   try{
-    // Add wildcard for fuzzy search
-  const searchQ=q.length>=4?q+'*':q;
-  const res=await fetch(`${PTRACE_BASE}/cards?search=${encodeURIComponent(searchQ)}&market=US&limit=20`,{headers:PTRACE_HEADERS});
-    if(!res.ok) throw new Error('API error '+res.status);
+    const setF=$('setFilter')?$('setFilter').value.trim():'';
+    // Check if searching by card number
+    const isNumber=/^\d{1,3}(\/\d{1,3})?$/.test(q.trim());
+    let url;
+    if(isNumber){
+      // Search by card number
+      url=`${PTRACE_BASE}/cards?number=${encodeURIComponent(q.trim())}&market=US&limit=20`;
+      if(setF) url+=`&set=${encodeURIComponent(setF)}`;
+    }else{
+      // Search by name with optional set filter
+      const searchQ=q.length>=4?q+'*':q;
+      url=`${PTRACE_BASE}/cards?search=${encodeURIComponent(searchQ)}&market=US&limit=20`;
+      if(setF) url+=`&set=${encodeURIComponent(setF)}`;
+    }
+    const res=await fetch(url,{headers:PTRACE_HEADERS});
+    if(!res.ok) throw new Error('Error '+res.status);
     const json=await res.json();
     const data=json.data||[];
-    if(!data.length){drop.innerHTML='<div class="r-status">No se encontraron cartas. Intenta otro nombre.</div>';return;}
+    if(!data.length){
+      drop.innerHTML='<div class="r-status">No se encontraron cartas. Intenta con otro nombre o set.</div>';
+      return;
+    }
     renderResults(data,drop);
   }catch(e){
-    drop.innerHTML=`<div class="r-status">Error: ${e.message}</div>`;
+    drop.innerHTML=`<div class="r-status">Error al conectar: ${e.message}</div>`;
   }
 }
 function extractPrices(card){
