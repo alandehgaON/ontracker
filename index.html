@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js">
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OnTracker</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple-dark: #26215C; --purple-mid: #3C3489; --purple-pale: #EEEDFE;
+  --green-text: #27500A; --green-bg: #EAF3DE;
+  --amber-text: #633806; --amber-bg: #FAEEDA;
+  --red-text: #791F1F; --red-bg: #FCEBEB;
+  --coral-text: #712B13; --coral-bg: #FAECE7;
+  --border: #e0ddd8;
+  --text-primary: #1a1a18; --text-secondary: #5F5E5A; --text-muted: #888780;
+  --bg-page: #f7f6f3; --bg-card: #ffffff; --bg-surface: #f1efe8;
+  --success: #1D9E75; --danger: #D85A30;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-page); color: var(--text-primary); min-height: 100vh; font-size: 14px; }
+
+/* LOGIN */
+.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--purple-dark); }
+.login-box { background: var(--bg-card); border-radius: var(--radius-lg); padding: 2.5rem 2rem; width: 100%; max-width: 360px; }
+.login-logo { text-align: center; margin-bottom: 2rem; }
+.login-logo h1 { font-size: 20px; font-weight: 600; color: var(--purple-dark); }
+.login-logo p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 14px; outline: none; transition: border-color 0.15s; }
+.field input:focus { border-color: var(--purple-mid); box-shadow: 0 0 0 3px rgba(60,52,137,0.1); }
+.btn-login { width: 100%; background: var(--purple-mid); color: white; border: none; border-radius: var(--radius-md); padding: 11px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 0.5rem; }
+.btn-login:hover { background: var(--purple-dark); }
+.login-error { font-size: 13px; color: var(--danger); text-align: center; margin-top: 0.75rem; min-height: 18px; }
+
+/* APP */
+.app-page { display: none; min-height: 100vh; }
+.app-page.active { display: block; }
+.topbar { background: var(--purple-dark); color: white; padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-brand { font-size: 16px; font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.user-chip { background: rgba(255,255,255,0.12); border-radius: 20px; padding: 5px 12px; font-size: 13px; }
+.btn-out { background: none; border: 1px solid rgba(255,255,255,0.25); color: white; border-radius: var(--radius-sm); padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.btn-out:hover { background: rgba(255,255,255,0.1); }
+.rate-badge { font-size: 11px; color: rgba(255,255,255,0.55); }
+
+.main { max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+
+/* METRICS */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.metric { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem 1.25rem; }
+.metric-icon { opacity: 0.5; margin-right: 3px; }
+.metric-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; }
+.metric-value { font-size: 20px; font-weight: 600; }
+.metric-value.up { color: var(--success); }
+.metric-value.down { color: var(--danger); }
+
+/* TOOLBAR */
+.toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); transition: all 0.15s; }
+.btn:hover { background: var(--bg-surface); }
+.btn.primary { background: var(--purple-mid); color: white; border-color: var(--purple-mid); }
+.btn.primary:hover { background: var(--purple-dark); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* FILTERS */
+.filters { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+.filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); transition: all 0.15s; }
+.filter-btn.active { background: var(--purple-mid); color: white; border-color: var(--purple-mid); }
+.filter-btn:hover:not(.active) { background: var(--bg-surface); }
+
+/* TABLE */
+.table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { background: var(--bg-surface); padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #fafaf8; }
+.card-img { width: 36px; height: 50px; object-fit: contain; border-radius: 3px; }
+.card-img-ph { width: 36px; height: 50px; background: var(--bg-surface); border-radius: 3px; border: 1px dashed var(--border); }
+.card-name { font-weight: 600; }
+.card-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+/* BADGES */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.nm { background: var(--green-bg); color: var(--green-text); }
+.lp { background: var(--amber-bg); color: var(--amber-text); }
+.mp { background: var(--coral-bg); color: var(--coral-text); }
+.hp { background: var(--red-bg); color: var(--red-text); }
+
+/* GRADE BADGES */
+.grade-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.grade-psa { background: #1a4fa0; color: white; }
+.grade-bgs { background: #8B0000; color: white; }
+.grade-cgc { background: #1a6b3c; color: white; }
+.grade-sgc { background: #5a3e8a; color: white; }
+.grade-tag { background: #b45309; color: white; }
+.grade-ace { background: #374151; color: white; }
+.grade-pending { background: #f59e0b; color: white; }
+
+.gain { color: var(--success); font-weight: 600; }
+.loss { color: var(--danger); font-weight: 600; }
+.muted { color: var(--text-muted); }
+.sold-tag { background: #e5e5e3; color: #6b6b68; padding: 1px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; margin-left: 4px; }
+.sold-row td { opacity: 0.55; }
+.grading-row td { background: #fffbeb !important; }
+.icon-btn { background: none; border: none; cursor: pointer; padding: 5px 6px; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 15px; transition: all 0.15s; }
+.icon-btn:hover { background: var(--bg-surface); }
+.icon-btn.danger:hover { background: var(--red-bg); color: var(--red-text); }
+.empty { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
+.chg-up { color: var(--success); font-size: 11px; }
+.chg-down { color: var(--danger); font-size: 11px; }
+
+/* MODAL */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(20,18,50,0.55); z-index: 200; align-items: flex-start; justify-content: center; padding: 30px 16px; overflow-y: auto; }
+.overlay.open { display: flex; }
+.modal { background: var(--bg-card); border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 1.5rem; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.modal-header h2 { font-size: 17px; font-weight: 600; }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 22px; line-height: 1; }
+.mfield { margin-bottom: 0.875rem; }
+.mfield label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+.mfield input, .mfield select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; outline: none; transition: border-color 0.15s; background: white; }
+.mfield input:focus, .mfield select:focus { border-color: var(--purple-mid); box-shadow: 0 0 0 3px rgba(60,52,137,0.1); }
+.mfield input[readonly] { background: #e8e6e0; color: var(--text-secondary); cursor: not-allowed; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.modal-footer { display: flex; gap: 8px; margin-top: 1.25rem; }
+.modal-footer button { flex: 1; padding: 10px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; cursor: pointer; }
+.btn-cancel { background: none; border: 1px solid var(--border); color: var(--text-secondary); }
+.btn-save { background: var(--purple-mid); color: white; border: none; }
+.btn-save:hover { background: var(--purple-dark); }
+
+/* TOGGLE SWITCH */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface); border-radius: var(--radius-md); margin-bottom: 0.875rem; cursor: pointer; }
+.toggle-row label { font-size: 13px; font-weight: 500; cursor: pointer; }
+.toggle-row .toggle-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: #ccc; border-radius: 22px; transition: 0.2s; cursor: pointer; }
+.slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+input:checked + .slider { background: var(--purple-mid); }
+input:checked + .slider:before { transform: translateX(18px); }
+
+/* GRADING SECTION */
+.grade-section { background: var(--purple-pale); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 0.875rem; display: none; }
+.grade-section.show { display: block; }
+.grade-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--purple-mid); margin-bottom: 10px; }
+
+/* SEND TO GRADE SECTION */
+.send-grade-section { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 0.875rem; display: none; }
+.send-grade-section.show { display: block; }
+.send-grade-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #b45309; margin-bottom: 10px; }
+
+/* PRICE SECTION */
+.price-section { background: var(--bg-surface); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 0.875rem; }
+.price-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; }
+
+/* SEARCH */
+.search-input-row { display: flex; gap: 8px; margin-bottom: 6px; }
+.search-input-row input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; outline: none; }
+.search-input-row input:focus { border-color: var(--purple-mid); }
+.btn-search { padding: 9px 14px; background: var(--purple-mid); color: white; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.btn-search:hover { background: var(--purple-dark); }
+.search-wrap { position: relative; }
+.results-drop { display: none; position: absolute; top: 4px; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); z-index: 300; max-height: 280px; overflow-y: auto; box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
+.r-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+.r-item:last-child { border-bottom: none; }
+.r-item:hover { background: var(--purple-pale); }
+.r-img { width: 32px; height: 44px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+.r-info { flex: 1; min-width: 0; }
+.r-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.r-price { font-size: 12px; color: var(--success); font-weight: 600; white-space: nowrap; text-align: right; }
+.r-price small { display: block; font-size: 10px; color: var(--text-muted); font-weight: 400; }
+.r-status { padding: 12px; font-size: 13px; color: var(--text-muted); text-align: center; }
+.sel-preview { margin-top: 8px; background: var(--purple-pale); border-radius: var(--radius-md); padding: 10px 12px; display: none; align-items: center; gap: 12px; }
+.sel-preview img { width: 40px; height: 56px; object-fit: contain; border-radius: 4px; }
+.prev-name { font-size: 13px; font-weight: 600; }
+.prev-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.prev-prices { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+.prev-price-item { font-size: 11px; }
+.prev-price-item span { font-weight: 600; color: var(--success); }
+.search-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+
+/* SOURCE TOGGLE */
+.source-toggle { display: flex; background: var(--bg-surface); border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
+.src-btn { background: none; border: none; padding: 5px 12px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
+.src-btn.active { background: var(--purple-mid); color: white; border-radius: var(--radius-sm); }
+
+/* CONVERT MODAL */
+.convert-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.convert-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+.convert-item:last-child { border-bottom: none; }
+.convert-item:hover { background: var(--purple-pale); }
+.convert-item.selected { background: var(--purple-pale); border-left: 3px solid var(--purple-mid); }
+.convert-item img { width: 28px; height: 40px; object-fit: contain; border-radius: 3px; }
+.convert-item .ci-name { font-size: 13px; font-weight: 600; }
+.convert-item .ci-sub { font-size: 11px; color: var(--text-muted); }
+
+@media (max-width: 600px) {
+  .main { padding: 1rem; }
+  .row2, .row3 { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .topbar { padding: 0 1rem; }
+  .rate-badge { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-page" id="loginPage">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>OnTracker</h1>
+      <p>Acceso exclusivo  solo miembros</p>
+    </div>
+    <div class="field"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu usuario" autocomplete="off" /></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="loginPass" placeholder="" /></div>
+    <button class="btn-login" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app-page" id="appPage">
+  <div class="topbar">
+    <div class="topbar-brand">OnTracker</div>
+    <div class="topbar-right">
+      <span class="rate-badge" id="rateBadge"></span>
+      <select id="currencySelect" onchange="setCurrency(this.value)" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius-sm);padding:5px 10px;font-size:13px;font-weight:500;cursor:pointer;outline:none;">
+        <option value="USD" style="color:black">USD</option>
+        <option value="MXN" selected style="color:black">MXN</option>
+      </select>
+      <div class="user-chip" id="userLabel"></div>
+      <button class="btn-out" onclick="doLogout()"><i data-lucide="log-out" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i> Salir</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label"><i data-lucide="layers" style="width:13px;height:13px;display:inline-block;vertical-align:middle" class="metric-icon"></i> Total cartas</div><div class="metric-value" id="mTotal">0</div></div>
+      <div class="metric"><div class="metric-label"><i data-lucide="trending-down" style="width:13px;height:13px;display:inline-block;vertical-align:middle" class="metric-icon"></i> Invertido</div><div class="metric-value" id="mInv"></div></div>
+      <div class="metric"><div class="metric-label"><i data-lucide="bar-chart-2" style="width:13px;height:13px;display:inline-block;vertical-align:middle" class="metric-icon"></i> Valor actual</div><div class="metric-value" id="mAct"></div></div>
+      <div class="metric"><div class="metric-label">Ganancia / Pérdida</div><div class="metric-value" id="mGan"></div></div>
+      <div class="metric"><div class="metric-label"><i data-lucide="hourglass" style="width:13px;height:13px;display:inline-block;vertical-align:middle" class="metric-icon"></i> En gradeo</div><div class="metric-value" id="mGrading">0</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="openModal()"><i data-lucide="plus" style="width:15px;height:15px;display:inline-block;vertical-align:middle"></i> Agregar carta</button>
+      <button class="btn" onclick="openSendToGradeModal()">Enviar a gradar</button>
+      <button class="btn" onclick="refreshPrices()" id="refreshBtn"><i data-lucide="refresh-cw" style="width:15px;height:15px;display:inline-block;vertical-align:middle"></i> Actualizar precios</button>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all', this)"><i data-lucide="layers" style="width:13px;height:13px;display:inline-block;vertical-align:middle"></i> Todas</button>
+      <button class="filter-btn" onclick="setFilter('raw', this)"><i data-lucide="tag" style="width:13px;height:13px;display:inline-block;vertical-align:middle"></i> Raw</button>
+      <button class="filter-btn" onclick="setFilter('graded', this)"><i data-lucide="star" style="width:13px;height:13px;display:inline-block;vertical-align:middle"></i> Gradeadas</button>
+      <button class="filter-btn" onclick="setFilter('grading', this)"><i data-lucide="clock" style="width:13px;height:13px;display:inline-block;vertical-align:middle"></i> En gradeo </button>
+      <button class="filter-btn" onclick="setFilter('sold', this)"><i data-lucide="check" style="width:13px;height:13px;display:inline-block;vertical-align:middle"></i> Vendidas</button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:46px"></th>
+              <th>Carta</th>
+              <th>Set</th>
+              <th>Gradeo</th>
+              <th>Cond.</th>
+              <th>Cant.</th>
+              <th>Compra</th>
+              <th>Precio actual</th>
+              <th>24h</th>
+              <th>Rendimiento</th>
+              <th>Venta</th>
+              <th>Fecha</th>
+              <th style="width:72px"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty" id="emptyState">
+          <p style="font-size:15px;margin-bottom:6px">Tu colección está vacía</p>
+          <small>Presiona <strong>Agregar carta</strong> para comenzar</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR/EDITAR -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Agregar carta</h2>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x" style="width:18px;height:18px;display:inline-block;vertical-align:middle"></i></button>
+    </div>
+
+    <div class="mfield">
+      <label>Buscar carta</label>
+      <div class="search-input-row">
+        <input type="text" id="cardSearch" placeholder="Nombre de la carta, ej: Charizard..." autocomplete="off" oninput="onSearch()" onkeydown="if(event.key==='Enter')triggerSearch()" />
+        <button class="btn-search" onclick="triggerSearch()">Buscar</button>
+      </div>
+      <div class="search-hint">Escribe el nombre en inglés para mejores resultados.</div>
+      <div class="search-wrap">
+        <div class="results-drop" id="resultsDrop"></div>
+      </div>
+      <div class="sel-preview" id="selPreview">
+        <img id="prevImg" src="" alt="" style="display:none" />
+        <div style="flex:1">
+          <div class="prev-name" id="prevName"></div>
+          <div class="prev-sub" id="prevSub"></div>
+          <div class="prev-prices" id="prevPrices"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="mfield"><label>Condición</label>
+        <select id="fCond" onchange="if(selCard)updateMarketPrice(selCard)">
+          <option value="NM">NM  Near Mint</option>
+          <option value="LP">LP  Lightly Played</option>
+          <option value="MP">MP  Moderately Played</option>
+          <option value="HP">HP  Heavily Played</option>
+        </select>
+      </div>
+      <div class="mfield"><label>Cantidad</label><input type="number" id="fQty" min="1" value="1" /></div>
+      <div class="mfield"><label>Fecha de compra</label><input type="date" id="fDate" /></div>
+    </div>
+
+    <!-- TOGGLE GRADEADA -->
+    <div class="toggle-row" onclick="toggleGraded()">
+      <div>
+        <div style="font-size:13px;font-weight:500">Carta gradeada</div>
+        <div class="toggle-sub">Activa si la compraste ya gradeada</div>
+      </div>
+      <label class="switch" onclick="event.stopPropagation()">
+        <input type="checkbox" id="isGraded" onchange="toggleGraded()" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- SECCIÓN GRADEO -->
+    <div class="grade-section" id="gradeSection">
+      <div class="grade-section-title">Información de gradeo</div>
+      <div class="row2">
+        <div class="mfield" style="margin-bottom:0">
+          <label>Casa de gradeo</label>
+          <select id="fGradeCompany" onchange="onGradeChange()">
+            <option value="PSA">PSA</option>
+            <option value="BGS">BGS (Beckett)</option>
+            <option value="CGC">CGC</option>
+            <option value="SGC">SGC</option>
+            <option value="TAG">TAG</option>
+            <option value="ACE">ACE</option>
+          </select>
+        </div>
+        <div class="mfield" style="margin-bottom:0">
+          <label>Grado</label>
+          <select id="fGradeValue" onchange="onGradeChange()">
+            <option value="10">10</option>
+            <option value="9.5">9.5</option>
+            <option value="9">9</option>
+            <option value="8.5">8.5</option>
+            <option value="8">8</option>
+            <option value="7.5">7.5</option>
+            <option value="7">7</option>
+            <option value="6">6</option>
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+            <option value="AUTH">AUTH</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted)" id="gradePriceInfo">El precio de mercado se actualizará al seleccionar gradeo.</div>
+    </div>
+
+    <!-- PRECIOS -->
+    <div class="price-section">
+      <div class="price-section-title" id="priceSectionTitle">Precios (USD)</div>
+      <div class="row3">
+        <div class="mfield" style="margin-bottom:0">
+          <label id="lblMkt">Precio mercado (USD)</label>
+          <input type="number" id="fMkt" step="0.01" placeholder="" oninput="calcBuyFromPct()" />
+        </div>
+        <div class="mfield" style="margin-bottom:0">
+          <label>% de compra</label>
+          <input type="number" id="fPct" step="1" min="1" max="300" placeholder="ej: 70" oninput="calcBuyFromPct()" />
+        </div>
+        <div class="mfield" style="margin-bottom:0">
+          <label id="lblBuy">Precio compra (USD)</label>
+          <input type="number" id="fBuy" step="0.01" placeholder="0.00" oninput="calcPctFromBuy()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="mfield">
+      <label id="sellLabel">Precio de venta</label>
+      <input type="number" id="fSell" step="0.01" placeholder="Precio de venta" />
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveCard()">Guardar carta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENVIAR A GRADAR -->
+<div class="overlay" id="sendGradeOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Enviar a gradar</h2>
+      <button class="modal-close" onclick="closeSendGradeModal()"><i data-lucide="x" style="width:18px;height:18px;display:inline-block;vertical-align:middle"></i></button>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem">Selecciona la carta raw que vas a enviar a gradar.</p>
+
+    <div class="convert-list" id="convertList"></div>
+
+    <div class="send-grade-section show" style="margin-top:1rem">
+      <div class="send-grade-title">Detalles del envío</div>
+      <div class="row2">
+        <div class="mfield" style="margin-bottom:0">
+          <label>Casa de gradeo</label>
+          <select id="sgCompany">
+            <option value="PSA">PSA</option>
+            <option value="BGS">BGS (Beckett)</option>
+            <option value="CGC">CGC</option>
+            <option value="SGC">SGC</option>
+            <option value="TAG">TAG</option>
+            <option value="ACE">ACE</option>
+          </select>
+        </div>
+        <div class="mfield" style="margin-bottom:0">
+          <label id="lblGradeCost">Costo del gradeo (USD)</label>
+          <input type="number" id="sgCost" step="0.01" placeholder="ej: 25.00" />
+        </div>
+      </div>
+      <div class="mfield" style="margin-top:10px;margin-bottom:0">
+        <label>Fecha de envío</label>
+        <input type="date" id="sgDate" />
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeSendGradeModal()">Cancelar</button>
+      <button class="btn-save" onclick="confirmSendToGrade()">Enviar a gradar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECIBIR GRADEO -->
+<div class="overlay" id="receiveGradeOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Registrar grado Carta regresó del gradeo</h2>
+      <button class="modal-close" onclick="closeReceiveGradeModal()"><i data-lucide="x" style="width:18px;height:18px;display:inline-block;vertical-align:middle"></i></button>
+    </div>
+    <div id="receiveCardInfo" style="background:var(--purple-pale);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:1rem;font-size:13px;"></div>
+    <div class="row2">
+      <div class="mfield">
+        <label>Grado obtenido</label>
+        <select id="rgGrade">
+          <option value="10">10</option>
+          <option value="9.5">9.5</option>
+          <option value="9">9</option>
+          <option value="8.5">8.5</option>
+          <option value="8">8</option>
+          <option value="7.5">7.5</option>
+          <option value="7">7</option>
+          <option value="6">6</option>
+          <option value="5">5</option>
+          <option value="4">4</option>
+          <option value="3">3</option>
+          <option value="2">2</option>
+          <option value="1">1</option>
+          <option value="AUTH">AUTH</option>
+        </select>
+      </div>
+      <div class="mfield">
+        <label>Fecha de regreso</label>
+        <input type="date" id="rgDate" />
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted)">El costo total de la carta incluirá el precio original + costo del gradeo.</p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeReceiveGradeModal()">Cancelar</button>
+      <button class="btn-save" onclick="confirmReceiveGrade()">Confirmar grado</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Lucide icons helper - defined first so always available
+function reIcons(){ 
+  if(window.lucide) lucide.createIcons(); 
+}
+document.addEventListener('DOMContentLoaded', reIcons);
+
+const USERS = { ALAN:'POKEMON123', IVAN:'TILIN123', ROSENDO:'GIGI123' };
+const PTRACE_KEY = 'pc_033f57cc0d14033b4fdf8cb448312c6e23eb769f86487075';
+const PTRACE_BASE = 'https://api.poketrace.com/v1';
+const PTRACE_HEADERS = { 'X-API-Key': PTRACE_KEY };
+
+let currentUser=null, editIdx=null, selCard=null, debounce=null;
+let priceSource='tcg';
+let currency='MXN', exchangeRate=17.5;
+let activeFilter='all', selectedConvertIdx=null, receivingGradeIdx=null;
+
+const $=id=>document.getElementById(id);
+const getData=u=>{try{return JSON.parse(localStorage.getItem('pct5_'+u)||'[]');}catch(e){return[];}};
+const setData=(u,d)=>localStorage.setItem('pct5_'+u,JSON.stringify(d));
+
+// CURRENCY
+function setPriceSource(src){
+  priceSource=src;
+  $('srcTCG').classList.toggle('active',src==='tcg');
+  $('srcEbay').classList.toggle('active',src==='ebay');
+  if(selCard) updateMarketPrice(selCard);
+}
+
+function getConditionPrice(card, source, cond){
+  // Map condition to price field
+  // PokeTrace: NEAR_MINT, LIGHTLY_PLAYED, MODERATELY_PLAYED, HEAVILY_PLAYED
+  const condMap={NM:'NEAR_MINT',LP:'LIGHTLY_PLAYED',MP:'MODERATELY_PLAYED',HP:'HEAVILY_PLAYED'};
+  const key=condMap[cond]||'NEAR_MINT';
+  if(source==='ebay'){
+    return card.ebayPrices?.[key]?.avg||card.ebayNM||null;
+  }
+  return card.tcgPrices?.[key]?.avg||card.tcgNM||null;
+}
+
+function updateMarketPrice(card){
+  const cond=$('fCond').value||'NM';
+  const price=getConditionPrice(card, priceSource, cond);
+  const best=price||(priceSource==='ebay'?(card.ebayNM||card.tcgNM):(card.tcgNM||card.ebayNM));
+  if(best){
+    $('fMkt').value=parseFloat(best).toFixed(2);
+    const pct=parseFloat($('fPct').value);
+    if(!isNaN(pct)&&pct>0) $('fBuy').value=(best*(pct/100)).toFixed(2);
+  }else{ $('fMkt').value=''; }
+}
+
+async function fetchRate(){
+  try{
+    const r=await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const j=await r.json();
+    exchangeRate=j.rates?.MXN||17.5;
+    $('rateBadge').textContent=`1 USD = $${exchangeRate.toFixed(2)} MXN`;
+  }catch(e){ $('rateBadge').textContent='1 USD  $17.50 MXN'; }
+}
+function setCurrency(c){
+  currency=c;
+  $('currencySelect').value=c;
+  updateModalLabels();
+  if(currentUser)render();
+}
+function updateModalLabels(){
+  const sym=currency==='MXN'?'MXN':'USD';
+  const lbl=$('sellLabel'); if(lbl) lbl.textContent=`Precio de venta (${sym})`;
+  const ps=$('priceSectionTitle'); if(ps) ps.textContent=`Precios (${sym})`;
+  const lm=$('lblMkt'); if(lm) lm.textContent=`Precio mercado (${sym})`;
+  const lb=$('lblBuy'); if(lb) lb.textContent=`Precio compra (${sym})`;
+  const gc=$('lblGradeCost'); if(gc) gc.textContent=`Costo del gradeo (${sym})`;
+}
+function updateSellLabel(){ updateModalLabels(); }
+function fmt(usd){
+  if(usd==null)return'';
+  const v=parseFloat(usd);
+  if(currency==='MXN')return'$'+(v*exchangeRate).toFixed(2)+' MXN';
+  return'$'+v.toFixed(2)+' USD';
+}
+
+// AUTH
+function doLogin(){
+  const u=$('loginUser').value.trim().toUpperCase();
+  const p=$('loginPass').value.trim().toUpperCase();
+  if(USERS[u]&&USERS[u]===p){
+    currentUser=u;
+    $('loginError').textContent='';
+    $('loginPage').style.display='none';
+    $('appPage').classList.add('active');
+    $('userLabel').textContent=u[0]+u.slice(1).toLowerCase();
+    $('fDate').value=new Date().toISOString().split('T')[0];
+    $('sgDate').value=new Date().toISOString().split('T')[0];
+    $('rgDate').value=new Date().toISOString().split('T')[0];
+    fetchRate(); render();
+  }else{ $('loginError').textContent='Usuario o contraseña incorrectos.'; }
+}
+$('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+$('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function doLogout(){
+  currentUser=null;
+  $('appPage').classList.remove('active');
+  $('loginPage').style.display='';
+  $('loginUser').value='';$('loginPass').value='';
+}
+
+// GRADE BADGE
+function gradeBadge(c){
+  if(!c||!c.company)return'<span class="badge" style="background:#e5e5e3;color:#444"><i data-lucide="tag" style="width:13px;height:13px;display:inline-block;vertical-align:middle"></i> Raw</span>';
+  if(c.status==='pending') return`<span class="grade-badge grade-pending"> ${c.company}</span>`;
+  const cls={PSA:'grade-psa',BGS:'grade-bgs',CGC:'grade-cgc',SGC:'grade-sgc',TAG:'grade-tag',ACE:'grade-ace'};
+  return`<span class="grade-badge ${cls[c.company]||'grade-ace'}">${c.company} ${c.grade}</span>`;
+}
+
+function condBadge(c){
+  const cls={NM:'nm',LP:'lp',MP:'mp',HP:'hp'};
+  return`<span class="badge ${cls[c]||''}">${c}</span>`;
+}
+
+// FILTER
+function setFilter(f, btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+// RENDER
+function calcRend(c){
+  const qty=parseInt(c.qty)||1;
+  const buyTotal=(parseFloat(c.buy)||0)*qty;
+  // If grading, add grading cost
+  const gradeCost=c.grading?.cost?parseFloat(c.grading.cost):0;
+  const totalCost=buyTotal+(gradeCost*qty);
+  if(c.sell!=null&&c.sell!==''){
+    const sellTotal=parseFloat(c.sell)*qty;
+    const diff=sellTotal-totalCost;
+    const pct=totalCost>0?((diff/totalCost)*100).toFixed(1):'0.0';
+    return{diff,pct,hasData:true,isSold:true};
+  }
+  if(c.mkt!=null){
+    const actTotal=parseFloat(c.mkt)*qty;
+    const diff=actTotal-totalCost;
+    const pct=totalCost>0?((diff/totalCost)*100).toFixed(1):'0.0';
+    return{diff,pct,hasData:true,isSold:false};
+  }
+  return{hasData:false};
+}
+
+function render(){
+  const all=getData(currentUser);
+  let cards=all;
+  if(activeFilter==='raw') cards=all.filter(c=>!c.grade||(!c.grade.company));
+  else if(activeFilter==='graded') cards=all.filter(c=>c.grade?.company&&c.grade.status!=='pending');
+  else if(activeFilter==='grading') cards=all.filter(c=>c.grade?.status==='pending');
+  else if(activeFilter==='sold') cards=all.filter(c=>c.sell!=null&&c.sell!=='');
+
+  const tbody=$('tableBody');
+  $('emptyState').style.display=cards.length?'none':'block';
+  tbody.innerHTML='';
+  let inv=0,act=0,total=0,hasAct=false,gradingCount=0;
+
+  all.forEach(c=>{
+    if(c.grade?.status==='pending') gradingCount++;
+  });
+
+  cards.forEach((c,visIdx)=>{
+    // Find real index in all cards array
+    const realIdx=all.indexOf(c);
+    const qty=parseInt(c.qty)||1;
+    const gradeCost=c.grading?.cost?parseFloat(c.grading.cost):0;
+    const buyTotal=((parseFloat(c.buy)||0)+gradeCost)*qty;
+    inv+=buyTotal; total+=qty;
+    let actTotal=null;
+    if(c.sell!=null&&c.sell!=='') actTotal=parseFloat(c.sell)*qty;
+    else if(c.mkt!=null) actTotal=parseFloat(c.mkt)*qty;
+    if(actTotal!==null){act+=actTotal;hasAct=true;}
+
+    const rend=calcRend(c);
+    let rendHtml='<span class="muted"></span>';
+    if(rend.hasData){
+      rendHtml=rend.diff>=0
+        ?`<span class="gain">+${fmt(rend.diff)} (${rend.pct}%)</span>`
+        :`<span class="loss">${fmt(rend.diff)} (${rend.pct}%)</span>`;
+      if(rend.isSold) rendHtml+=' <span style="font-size:10px;color:var(--text-muted)">(venta)</span>';
+    }
+
+    let chg24Html='<span class="muted"></span>';
+    if(c.chg24!=null){
+      const chg=parseFloat(c.chg24);
+      chg24Html=chg>=0?`<span class="chg-up">+${chg.toFixed(1)}%</span>`:`<span class="chg-down">-${Math.abs(chg).toFixed(1)}%</span>`;
+    }
+
+    const imgCell=c.img?`<img src="${c.img}" class="card-img" alt="${c.name}" />`:`<div class="card-img-ph"></div>`;
+    const isPending=c.grade?.status==='pending';
+
+    // Extra actions for grading
+    let extraActions='';
+    if(isPending){
+      extraActions=`<button class="icon-btn" onclick="openReceiveGradeModal(${realIdx})" title="Registrar grado obtenido" style="font-size:13px">Registrar grado</button>`;
+    }
+
+    const tr=document.createElement('tr');
+    if(c.sell!=null&&c.sell!=='') tr.className='sold-row';
+    else if(isPending) tr.className='grading-row';
+    tr.innerHTML=`
+      <td>${imgCell}</td>
+      <td>
+        <div class="card-name">${c.name}${c.sell!=null&&c.sell!==''?'<span class="sold-tag">vendida</span>':''}</div>
+        ${c.grading?.cost?`<div class="card-sub">Gradeo: +$${parseFloat(c.grading.cost).toFixed(2)}</div>`:''}
+      </td>
+      <td><div class="card-sub">${c.set||''}</div></td>
+      <td>${gradeBadge(c.grade)}</td>
+      <td>${isPending?'<span class="muted"></span>':condBadge(c.cond)}</td>
+      <td style="text-align:center">${qty}</td>
+      <td>${fmt(c.buy)}${gradeCost>0?`<div class="card-sub">+$${gradeCost.toFixed(2)} gradeo</div>`:''}</td>
+      <td>${c.mkt!=null?fmt(c.mkt):'<span class="muted"></span>'}</td>
+      <td>${chg24Html}</td>
+      <td>${isPending?'<span class="muted">Esperando grado</span>':rendHtml}</td>
+      <td>${c.sell!=null&&c.sell!==''?fmt(c.sell):'<span class="muted"></span>'}</td>
+      <td><span class="card-sub">${c.date||''}</span></td>
+      <td>
+        ${extraActions}
+        <button class="icon-btn" onclick="openModal(${realIdx})" title="Editar"><i data-lucide="pencil" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i></button>
+        <button class="icon-btn danger" onclick="del(${realIdx})" title="Eliminar"><i data-lucide="trash-2" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i></button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  $('mTotal').textContent=total;
+  $('mInv').textContent=fmt(inv);
+  $('mAct').textContent=hasAct?fmt(act):'';
+  $('mGrading').textContent=gradingCount;
+  const gan=act-inv;
+  const gEl=$('mGan');
+  if(hasAct){
+    gEl.textContent=(gan>=0?'+':'')+fmt(gan);
+    gEl.className='metric-value '+(gan>=0?'up':'down');
+  }else{ gEl.textContent=''; gEl.className='metric-value'; }
+}
+
+// MODAL AGREGAR/EDITAR
+function openModal(idx){
+  editIdx=idx!==undefined?idx:null;
+  selCard=null;
+  $('modalTitle').textContent=editIdx!==null?'Editar carta':'Agregar carta';
+  $('cardSearch').value='';
+  $('resultsDrop').style.display='none';
+  $('selPreview').style.display='none';
+  $('gradeSection').classList.remove('show');
+  $('isGraded').checked=false;
+
+  if(editIdx!==null){
+    const c=getData(currentUser)[editIdx];
+    selCard={name:c.name,set:c.set,num:c.num,img:c.img,mkt:c.mkt,apiId:c.apiId,chg24:c.chg24,normalPrice:c.normalPrice,foilPrice:c.foilPrice};
+    $('cardSearch').value=c.name;
+    showPreview(selCard);
+    $('fCond').value=c.cond;
+    $('fQty').value=c.qty;
+    $('fMkt').value=c.mkt!=null?parseFloat(c.mkt).toFixed(2):'';
+    $('fBuy').value=c.buy;
+    $('fPct').value=c.mkt&&c.buy?((c.buy/c.mkt)*100).toFixed(1):'';
+    $('fSell').value=c.sell!=null&&c.sell!==''?c.sell:'';
+    $('fDate').value=c.date||'';
+    if(c.grade?.company&&c.grade.status!=='pending'){
+      $('isGraded').checked=true;
+      $('gradeSection').classList.add('show');
+      $('fGradeCompany').value=c.grade.company;
+      $('fGradeValue').value=c.grade.grade;
+    }
+  }else{
+    $('fCond').value='NM';
+    $('fQty').value=1;
+    $('fMkt').value='';
+    $('fBuy').value='';
+    $('fPct').value='';
+    $('fSell').value='';
+    $('fDate').value=new Date().toISOString().split('T')[0];
+  }
+  $('overlay').classList.add('open');
+  updateModalLabels();
+  setTimeout(()=>$('cardSearch').focus(),100);
+}
+function closeModal(){
+  $('overlay').classList.remove('open');
+  editIdx=null; selCard=null;
+  $('resultsDrop').style.display='none';
+}
+function toggleGraded(){
+  const checked=$('isGraded').checked;
+  $('gradeSection').classList.toggle('show',checked);
+  if(checked) onGradeChange();
+}
+
+function onGradeChange(){
+  if(!selCard?.mkt) return;
+  const company=$('fGradeCompany').value;
+  const grade=$('fGradeValue').value;
+  // Show info about graded price (would come from API in production)
+  $('gradePriceInfo').textContent=` Al actualizar precios se jalará el precio de ${company} ${grade} de eBay.`;
+}
+
+function del(i){
+  if(!confirm('¿Eliminar esta carta?'))return;
+  const cards=getData(currentUser);
+  cards.splice(i,1);
+  setData(currentUser,cards);
+  render();
+}
+
+// SEARCH
+function onSearch(){
+  clearTimeout(debounce);
+  const q=$('cardSearch').value.trim();
+  if(selCard){selCard=null;$('selPreview').style.display='none';}
+  if(q.length<2){$('resultsDrop').style.display='none';return;}
+  debounce=setTimeout(()=>fetchCards(q),500);
+}
+function triggerSearch(){
+  const q=$('cardSearch').value.trim();
+  if(q.length<1)return;
+  fetchCards(q);
+}
+async function fetchCards(q){
+  const drop=$('resultsDrop');
+  drop.style.display='block';
+  drop.innerHTML='<div class="r-status">Buscando...</div>';
+  try{
+    // Add wildcard for fuzzy search
+  const searchQ=q.length>=4?q+'*':q;
+  const res=await fetch(`${PTRACE_BASE}/cards?search=${encodeURIComponent(searchQ)}&market=US&limit=20`,{headers:PTRACE_HEADERS});
+    if(!res.ok) throw new Error('API error '+res.status);
+    const json=await res.json();
+    const data=json.data||[];
+    if(!data.length){drop.innerHTML='<div class="r-status">No se encontraron cartas. Intenta otro nombre.</div>';return;}
+    renderResults(data,drop);
+  }catch(e){
+    drop.innerHTML=`<div class="r-status">Error: ${e.message}</div>`;
+  }
+}
+function extractPrices(card){
+  // PokeTrace format: prices.tcgplayer.NEAR_MINT.avg, prices.ebay.NEAR_MINT.avg
+  const p=card.prices||{};
+  const tcg=p.tcgplayer||{};
+  const ebay=p.ebay||{};
+  // TCGPlayer prices by condition
+  const tcgNM=tcg.NEAR_MINT?.avg||null;
+  const tcgLP=tcg.LIGHTLY_PLAYED?.avg||null;
+  // eBay prices
+  const ebayNM=ebay.NEAR_MINT?.avg||null;
+  // Best price: prefer TCGPlayer NM, fallback to eBay NM
+  const bestPrice=tcgNM||ebayNM||null;
+  // Graded prices stored separately per company/grade (Pro plan)
+  const gradedPrices=p.graded||null;
+  // No 24h change in free tier of PokeTrace
+  const chg24=card.priceChange24h??null;
+  return{tcgNM,tcgLP,ebayNM,bestPrice,chg24,gradedPrices};
+}
+function renderResults(data,drop){
+  drop.innerHTML='';
+  data.forEach(card=>{
+    const name=card.name||'';
+    const setName=card.set?.name||'';
+    const num=card.cardNumber||'';
+    const rarity=card.rarity||'';
+    const img=card.image||'';
+    const{tcgNM,ebayNM,bestPrice,chg24}=extractPrices(card);
+    const div=document.createElement('div');
+    div.className='r-item';
+    div.innerHTML=`
+      ${img?`<img src="${img}" class="r-img" alt="${name}" />`:'<div style="width:32px;height:44px;background:#f1efe8;border-radius:3px;flex-shrink:0"></div>'}
+      <div class="r-info">
+        <div class="r-name">${name}</div>
+        <div class="r-sub">${setName}${num?' · #'+num:''}${rarity?' · '+rarity:''}</div>
+      </div>
+      <div class="r-price">
+        ${tcgNM?'TCG $'+parseFloat(tcgNM).toFixed(2):(bestPrice?'$'+parseFloat(bestPrice).toFixed(2):'Sin precio')}
+        ${ebayNM?`<small>eBay $${parseFloat(ebayNM).toFixed(2)}</small>`:''}
+      </div>`;
+    div.onclick=()=>pickCard(card);
+    drop.appendChild(div);
+  });
+}
+function pickCard(card){
+  const{tcgNM,tcgLP,ebayNM,bestPrice,chg24,gradedPrices}=extractPrices(card);
+  // Store full price breakdown for condition-based lookup
+  const tcgPrices=card.prices?.tcgplayer||{};
+  const ebayPrices=card.prices?.ebay||{};
+  selCard={
+    name:card.name||'', set:card.set?.name||'', num:card.cardNumber||'',
+    img:card.image||'', mkt:bestPrice, tcgNM, tcgLP, ebayNM,
+    tcgPrices, ebayPrices,
+    apiId:String(card.id||''), chg24, gradedPrices,
+    refs:card.refs||{}
+  };
+  $('cardSearch').value=selCard.name;
+  $('resultsDrop').style.display='none';
+  showPreview(selCard);
+  // Use selected source + condition price
+  updateMarketPrice(selCard);
+}
+function calcBuyFromPct(){
+  const mkt=parseFloat($('fMkt').value);
+  const pct=parseFloat($('fPct').value);
+  if(!isNaN(mkt)&&mkt>0&&!isNaN(pct)&&pct>0) $('fBuy').value=(mkt*(pct/100)).toFixed(2);
+}
+function calcPctFromBuy(){
+  const mkt=parseFloat($('fMkt').value);
+  const buy=parseFloat($('fBuy').value);
+  if(!isNaN(mkt)&&mkt>0&&!isNaN(buy)&&buy>0) $('fPct').value=((buy/mkt)*100).toFixed(1);
+}
+function showPreview(c){
+  $('prevImg').src=c.img||'';
+  $('prevImg').style.display=c.img?'block':'none';
+  $('prevName').textContent=c.name;
+  $('prevSub').textContent=(c.set||'')+(c.num?' · #'+c.num:'');
+  let pricesHtml='';
+  if(c.tcgNM) pricesHtml+=`<div class="prev-price-item">TCGPlayer NM: <span>$${parseFloat(c.tcgNM).toFixed(2)}</span></div>`;
+  if(c.tcgLP) pricesHtml+=`<div class="prev-price-item">TCGPlayer LP: <span>$${parseFloat(c.tcgLP).toFixed(2)}</span></div>`;
+  if(c.ebayNM) pricesHtml+=`<div class="prev-price-item">eBay NM: <span>$${parseFloat(c.ebayNM).toFixed(2)}</span></div>`;
+  if(!c.tcgNM&&!c.ebayNM&&c.mkt) pricesHtml+=`<div class="prev-price-item">Precio: <span>$${parseFloat(c.mkt).toFixed(2)}</span></div>`;
+  if(!pricesHtml) pricesHtml='<div class="prev-price-item" style="color:var(--text-muted)">Sin precio aún  sets muy nuevos pueden tardar unos días</div>';
+  if(c.chg24!=null) pricesHtml+=`<div class="prev-price-item">24h: <span style="color:${parseFloat(c.chg24)>=0?'var(--success)':'var(--danger)'}">${parseFloat(c.chg24)>=0?'+':''}${parseFloat(c.chg24).toFixed(1)}%</span></div>`;
+  $('prevPrices').innerHTML=pricesHtml;
+  $('selPreview').style.display='flex';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.search-wrap')&&!e.target.closest('.search-input-row'))
+    $('resultsDrop').style.display='none';
+});
+function saveCard(){
+  if(!selCard){alert('Selecciona una carta de las sugerencias.');return;}
+  const buyRaw=$('fBuy').value;
+  const buy=parseFloat(buyRaw);
+  if(!buyRaw||isNaN(buy)||buy<0){alert('Ingresa el precio de compra.');return;}
+  const sellVal=$('fSell').value;
+  const isGraded=$('isGraded').checked;
+  const card={
+    name:selCard.name, set:selCard.set, num:selCard.num,
+    img:selCard.img, apiId:selCard.apiId, mkt:selCard.mkt,
+    tcgNM:selCard.tcgNM||null, tcgLP:selCard.tcgLP||null, ebayNM:selCard.ebayNM||null,
+    chg24:selCard.chg24||null,
+    cond:$('fCond').value, qty:parseInt($('fQty').value)||1,
+    buy, sell:sellVal?parseFloat(sellVal):null,
+    date:$('fDate').value,
+    grade: isGraded ? {
+      company:$('fGradeCompany').value,
+      grade:$('fGradeValue').value,
+      status:'graded'
+    } : null
+  };
+  const cards=getData(currentUser);
+  if(editIdx!==null)cards[editIdx]=card; else cards.push(card);
+  setData(currentUser,cards);
+  closeModal(); render(); reIcons();
+}
+
+// SEND TO GRADE MODAL
+function openSendToGradeModal(){
+  const cards=getData(currentUser);
+  const rawCards=cards.filter(c=>(!c.grade||!c.grade.company)&&(c.sell==null||c.sell===''));
+  const list=$('convertList');
+  selectedConvertIdx=null;
+  if(!rawCards.length){
+    list.innerHTML='<div class="r-status">No tienes cartas raw disponibles para gradar.</div>';
+  }else{
+    list.innerHTML='';
+    rawCards.forEach(c=>{
+      const realIdx=cards.indexOf(c);
+      const div=document.createElement('div');
+      div.className='convert-item';
+      div.id='ci_'+realIdx;
+      div.innerHTML=`
+        ${c.img?`<img src="${c.img}" alt="${c.name}" />`:'<div style="width:28px;height:40px;background:#f1efe8;border-radius:3px;"></div>'}
+        <div>
+          <div class="ci-name">${c.name}</div>
+          <div class="ci-sub">${c.set||''}${c.num?' · #'+c.num:''} · ${c.cond} · $${parseFloat(c.buy||0).toFixed(2)}</div>
+        </div>`;
+      div.onclick=()=>selectConvertCard(realIdx);
+      list.appendChild(div);
+    });
+  }
+  $('sgDate').value=new Date().toISOString().split('T')[0];
+  $('sgCost').value='';
+  $('sendGradeOverlay').classList.add('open');
+}
+function selectConvertCard(idx){
+  selectedConvertIdx=idx;
+  document.querySelectorAll('.convert-item').forEach(el=>el.classList.remove('selected'));
+  const el=$('ci_'+idx);
+  if(el) el.classList.add('selected');
+}
+function closeSendGradeModal(){
+  $('sendGradeOverlay').classList.remove('open');
+  selectedConvertIdx=null;
+}
+function confirmSendToGrade(){
+  if(selectedConvertIdx===null){alert('Selecciona una carta de la lista.');return;}
+  const cost=parseFloat($('sgCost').value)||0;
+  const cards=getData(currentUser);
+  cards[selectedConvertIdx].grade={
+    company:$('sgCompany').value,
+    grade:null,
+    status:'pending',
+    cost,
+    sentDate:$('sgDate').value
+  };
+  cards[selectedConvertIdx].grading={ cost };
+  setData(currentUser,cards);
+  closeSendGradeModal(); render();
+}
+
+// RECEIVE GRADE MODAL
+function openReceiveGradeModal(idx){
+  receivingGradeIdx=idx;
+  const c=getData(currentUser)[idx];
+  $('receiveCardInfo').innerHTML=`<strong>${c.name}</strong> · ${c.grade?.company||''} · Enviada: ${c.grade?.sentDate||''}<br><span style="color:var(--text-muted)">Costo de gradeo: $${parseFloat(c.grading?.cost||0).toFixed(2)} USD</span>`;
+  $('rgGrade').value='10';
+  $('rgDate').value=new Date().toISOString().split('T')[0];
+  $('receiveGradeOverlay').classList.add('open');
+}
+function closeReceiveGradeModal(){
+  $('receiveGradeOverlay').classList.remove('open');
+  receivingGradeIdx=null;
+}
+function confirmReceiveGrade(){
+  if(receivingGradeIdx===null)return;
+  const cards=getData(currentUser);
+  const c=cards[receivingGradeIdx];
+  c.grade.grade=$('rgGrade').value;
+  c.grade.status='graded';
+  c.grade.returnDate=$('rgDate').value;
+  setData(currentUser,cards);
+  closeReceiveGradeModal(); render();
+}
+
+// REFRESH PRICES
+async function refreshPrices(){
+  const btn=$('refreshBtn');
+  btn.textContent='Actualizando...';
+  btn.disabled=true;
+  const cards=getData(currentUser);
+  for(let i=0;i<cards.length;i++){
+    if(!cards[i].apiId)continue;
+    try{
+      const res=await fetch(`${PTRACE_BASE}/cards/${cards[i].apiId}`,{headers:PTRACE_HEADERS});
+      if(!res.ok)continue;
+      const json=await res.json();
+      const card=json.data||json;
+      if(card){
+        const{tcgNM,tcgLP,ebayNM,bestPrice,chg24,gradedPrices}=extractPrices(card);
+        // Si es gradeada, intenta usar precio específico del gradeo (plan Pro)
+        if(cards[i].grade?.company&&cards[i].grade?.grade&&cards[i].grade.status==='graded'&&gradedPrices){
+          const company=cards[i].grade.company.toLowerCase();
+          const grade=String(cards[i].grade.grade);
+          const gradedMkt=gradedPrices?.[company]?.[grade]?.avg||null;
+          if(gradedMkt) cards[i].mkt=gradedMkt;
+          else if(bestPrice) cards[i].mkt=bestPrice;
+        }else if(bestPrice){ cards[i].mkt=bestPrice; }
+        if(tcgNM)cards[i].tcgNM=tcgNM;
+        if(tcgLP)cards[i].tcgLP=tcgLP;
+        if(ebayNM)cards[i].ebayNM=ebayNM;
+        if(chg24!=null)cards[i].chg24=chg24;
+      }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,400));
+  }
+  setData(currentUser,cards);
+  render(); fetchRate();
+  btn.textContent='Actualizar precios';
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
