@@ -306,14 +306,14 @@ input:checked + .slider:before { transform: translateX(18px); }
     <div class="mfield">
       <label>Buscar carta</label>
       <div class="search-input-row">
-        <input type="text" id="cardSearch" placeholder="Nombre, ej: Pikachu, Charizard..." autocomplete="off" oninput="onSearch()" onkeydown="if(event.key==='Enter')triggerSearch()" />
+        <input type="text" id="cardSearch" placeholder="Nombre, ej: Pikachu, Charizard..." autocomplete="off" onkeydown="if(event.key==='Enter')triggerSearch()" />
         <button class="btn-search" onclick="triggerSearch()">Buscar</button>
       </div>
       <div class="search-input-row" style="margin-top:6px">
-        <input type="text" id="setFilter" placeholder="Filtrar por set (opcional), ej: Ascended Heroes..." autocomplete="off" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;outline:none;color:var(--text-primary);background:white;" oninput="onSearch()" />
-        <input type="text" id="numFilter" placeholder="N° carta, ej: 025" autocomplete="off" style="width:110px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;outline:none;color:var(--text-primary);background:white;" oninput="onSearch()" />
+        <input type="text" id="setFilter" placeholder="Filtrar por set (opcional), ej: Ascended Heroes..." autocomplete="off" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;outline:none;color:var(--text-primary);background:white;" />
+
       </div>
-      <div class="search-hint">Nombre en inglés. Filtra por set o número para resultados más precisos.</div>
+      <div class="search-hint">Nombre en inglés. Filtro por set y N° de carta disponibles. Presiona Buscar o Enter.</div>
       <div class="search-wrap">
         <div class="results-drop" id="resultsDrop"></div>
       </div>
@@ -532,7 +532,9 @@ function setPriceSource(src){
   priceSource=src;
   $('srcTCG').classList.toggle('active',src==='tcg');
   $('srcEbay').classList.toggle('active',src==='ebay');
-  if(selCard) updateMarketPrice(selCard);
+  if(selCard){
+    updateMarketPrice(selCard);
+  }
 }
 
 function getConditionPrice(card, source, cond){
@@ -549,11 +551,13 @@ function getConditionPrice(card, source, cond){
 function updateMarketPrice(card){
   const cond=$('fCond').value||'NM';
   const price=getConditionPrice(card, priceSource, cond);
-  const best=price||(priceSource==='ebay'?(card.ebayNM||card.tcgNM):(card.tcgNM||card.ebayNM));
-  if(best){
-    $('fMkt').value=parseFloat(best).toFixed(2);
-    const pct=parseFloat($('fPct').value);
-    if(!isNaN(pct)&&pct>0) $('fBuy').value=(best*(pct/100)).toFixed(2);
+  const bestUSD=price||(priceSource==='ebay'?(card.ebayNM||card.tcgNM):(card.tcgNM||card.ebayNM));
+  if(bestUSD){
+    const displayPrice=currency==='MXN'?(bestUSD*exchangeRate):bestUSD;
+    $('fMkt').value=parseFloat(displayPrice).toFixed(2);
+    const pct=parseFloat($('fPct').value)||100;
+    if(!$('fPct').value) $('fPct').value='100';
+    $('fBuy').value=(displayPrice*(pct/100)).toFixed(2);
   }else{ $('fMkt').value=''; }
 }
 
@@ -782,7 +786,7 @@ function openModal(idx){
     $('fQty').value=1;
     $('fMkt').value='';
     $('fBuy').value='';
-    $('fPct').value='';
+    $('fPct').value='100';
     $('fSell').value='';
     $('fDate').value=new Date().toISOString().split('T')[0];
   }
@@ -835,30 +839,29 @@ async function fetchCards(q){
   drop.style.display='block';
   drop.innerHTML='<div class="r-status">Buscando...</div>';
   try{
-    const setF=$('setFilter')&&$('setFilter').value.trim()||'';
-    const numF=$('numFilter')&&$('numFilter').value.trim()||'';
-    // Build params
+    const setF=($('setFilter')&&$('setFilter').value.trim())||'';
+    const numF=($('numFilter')&&$('numFilter').value.trim())||'';
     const params=new URLSearchParams();
+    params.set('search', q);
     params.set('market','US');
     params.set('limit','20');
-    if(numF){
-      // Filter by number — still send name as search context
-      params.set('search', q);
-      params.set('number', numF);
-    } else {
-      params.set('search', q);
-    }
     if(setF) params.set('set', setF);
+    if(numF) params.set('number', numF);
     const url=`${PTRACE_BASE}/cards?${params.toString()}`;
     const res=await fetch(url,{headers:PTRACE_HEADERS});
     if(!res.ok){
-      const errText=await res.text().catch(()=>'');
-      throw new Error(`Error ${res.status}: ${errText.slice(0,100)}`);
+      const errJson=await res.json().catch(()=>({}));
+      const retryAfter=errJson.retryAfter||errJson.error?.retryAfter||2;
+      if(res.status===429){
+        drop.innerHTML=`<div class="r-status">Demasiadas solicitudes. Espera ${retryAfter}s y vuelve a buscar.</div>`;
+        return;
+      }
+      throw new Error(`Error ${res.status}`);
     }
     const json=await res.json();
     const data=json.data||[];
     if(!data.length){
-      drop.innerHTML='<div class="r-status">No se encontraron cartas. Ajusta el nombre, set o número.</div>';
+      drop.innerHTML='<div class="r-status">No se encontraron cartas. Intenta con otro nombre o set.</div>';
       return;
     }
     renderResults(data,drop);
@@ -959,8 +962,10 @@ document.addEventListener('click',e=>{
 function saveCard(){
   if(!selCard){alert('Selecciona una carta de las sugerencias.');return;}
   const buyRaw=$('fBuy').value;
-  const buy=parseFloat(buyRaw);
+  let buy=parseFloat(buyRaw);
   if(!buyRaw||isNaN(buy)||buy<0){alert('Ingresa el precio de compra.');return;}
+  // Convert back to USD for storage
+  if(currency==='MXN') buy=buy/exchangeRate;
   const sellVal=$('fSell').value;
   const isGraded=$('isGraded').checked;
   const card={
